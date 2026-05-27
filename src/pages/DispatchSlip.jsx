@@ -105,23 +105,8 @@ const DispatchSlip = () => {
           </div>
           <div style={{ textAlign: 'right' }}>
             <h2 style={{ margin: '0 0 10px 0', fontSize: '22px', textTransform: 'uppercase', color: '#2d3748' }}>Master Dispatch Slip</h2>
-            <QRCodeSVG value={`https://indotech-dispatch.system/verify/${wo.dispatch_ref || wo.wo_num}`} size={80} level="H" />
-          </div>
-        </div>
-
-        {/* References Block */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '25px' }}>
-          <div style={{ background: '#f7fafc', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-            <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#718096', fontWeight: 'bold' }}>Dispatch Reference</div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2d3748', marginTop: '4px' }}>{wo.dispatch_ref || '-'}</div>
-          </div>
-          <div style={{ background: '#f7fafc', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-            <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#718096', fontWeight: 'bold' }}>Packing Reference</div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2d3748', marginTop: '4px' }}>{wo.packing_ref || '-'}</div>
-          </div>
-          <div style={{ background: '#f7fafc', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
-            <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#718096', fontWeight: 'bold' }}>Loading Reference</div>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#2d3748', marginTop: '4px' }}>{wo.loading_ref || '-'}</div>
+            {/* QR code now uses only work order number */}
+            <QRCodeSVG value={`https://indotech-dispatch.system/verify/${wo.wo_num}`} size={80} level="H" />
           </div>
         </div>
 

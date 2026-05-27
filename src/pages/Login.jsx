@@ -71,10 +71,17 @@ const Login = () => {
       const { data: prof } = await supabase.from('profiles').select('id, role').eq('id', data.user.id).single();
       
       if (!prof) {
-        await supabase.from('profiles').insert([{ id: data.user.id, name: email.split('@')[0], role: 'User' }]);
-        redirectByRole('User');
+        const roleToSet = selectedRole || 'User';
+        await supabase.from('profiles').insert([{ id: data.user.id, name: email.split('@')[0], role: roleToSet }]);
+        redirectByRole(roleToSet);
       } else {
-        redirectByRole(prof.role);
+        // If a role was selected on the login page, prioritize it over stored role
+        const finalRole = selectedRole || prof.role;
+        // Optional: update stored role if it differs from selectedRole
+        if (selectedRole && selectedRole !== prof.role) {
+          await supabase.from('profiles').update({ role: selectedRole }).eq('id', data.user.id);
+        }
+        redirectByRole(finalRole);
       }
     }
     setLoading(false);
@@ -226,13 +233,14 @@ const Login = () => {
   ];
 
   const handleRoleSelect = (roleName) => {
-    setAnimatingRole(true);
-    setTimeout(() => {
-      setSelectedRole(roleName);
-      setStep('login');
-      setAnimatingRole(false);
-    }, 300);
-  };
+  setAnimatingRole(true);
+  setRole(roleName);
+  setTimeout(() => {
+    setSelectedRole(roleName);
+    setStep('login');
+    setAnimatingRole(false);
+  }, 300);
+};
 
   // ─── Render ───
   if (step === 'role_selection') {

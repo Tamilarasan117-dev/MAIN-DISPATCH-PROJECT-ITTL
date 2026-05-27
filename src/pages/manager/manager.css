@@ -1,0 +1,287 @@
+/* 
+  Manager Dashboard Specific Styles
+  Imports existing variables from index.css
+*/
+
+.manager-dashboard {
+  animation: fadeSlideIn 0.3s ease-out;
+  padding: 1rem;
+}
+
+.manager-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.manager-kpi-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.manager-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+}
+
+.manager-kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  color: #4a5568;
+  font-weight: 600;
+}
+
+.manager-kpi-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a202c;
+  line-height: 1.2;
+}
+
+.manager-kpi-subtext {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #718096;
+}
+
+.manager-kpi-sparkline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  opacity: 0.3;
+}
+
+.manager-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.manager-chart-container {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 1.5rem;
+  min-height: 350px;
+  display: flex;
+  flex-direction: column;
+}
+
+.manager-chart-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #2d3748;
+}
+
+.manager-donut-wrapper {
+  position: relative;
+  width: 100%;
+  height: 250px;
+}
+
+.manager-donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.manager-donut-center-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.manager-donut-center-label {
+  font-size: 0.875rem;
+  color: #718096;
+}
+
+.manager-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.manager-pipeline-stage {
+  display: flex;
+  align-items: center;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+  white-space: nowrap;
+}
+
+.manager-pipeline-stage.active {
+  background: #ebf8fa;
+  border-color: #319795;
+  color: #285e61;
+}
+
+.manager-pipeline-arrow {
+  color: #a0aec0;
+}
+
+.manager-risk-overdue { color: #e53e3e; background-color: #fed7d7; }
+.manager-risk-due-soon { color: #dd6b20; background-color: #feebc8; }
+.manager-risk-upcoming { color: #d69e2e; background-color: #fefcbf; }
+.manager-risk-on-track { color: #38a169; background-color: #c6f6d5; }
+
+.manager-risk-indicator {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.manager-approve-btn {
+  background: transparent;
+  border: 1px solid #38a169;
+  color: #38a169;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.manager-approve-btn:hover {
+  background: #f0fff4;
+}
+
+.manager-approve-btn.approved {
+  background: #38a169;
+  color: white;
+  border-color: #38a169;
+  cursor: default;
+}
+
+.manager-progress-ring {
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+.manager-progress-ring-circle {
+  transition: stroke-dashoffset 0.5s ease-in-out;
+}
+
+.manager-skeleton {
+  animation: skeletonPulse 1.5s infinite ease-in-out;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+}
+
+.manager-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+  color: #718096;
+}
+
+.manager-error-icon {
+  color: #fc8181;
+  margin-bottom: 1rem;
+}
+
+.manager-retry-btn {
+  margin-top: 1rem;
+  background: #edf2f7;
+  border: 1px solid #cbd5e0;
+  padding: 0.5rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.manager-retry-btn:hover {
+  background: #e2e8f0;
+}
+
+/* Specific view modals */
+.manager-view-modal-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.manager-view-modal-section {
+  background: #f7fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.manager-view-modal-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #718096;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.manager-view-modal-value {
+  font-size: 1rem;
+  color: #1a202c;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* Animations */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes skeletonPulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

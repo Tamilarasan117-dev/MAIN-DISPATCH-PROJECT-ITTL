@@ -40,7 +40,7 @@ const Sidebar = ({ user, handleLogout }) => {
       items: [
         { name: 'Master List', path: '/master-list', icon: Settings },
         { name: 'Vehicles',    path: '/vehicles',    icon: Car },
-        { name: 'Stuff List',  path: '/stuff-list',  icon: Box },
+        ...(isAdmin ? [{ name: 'Stuff List',  path: '/stuff-list',  icon: Box }] : [])
       ]
     },
     {
@@ -48,8 +48,10 @@ const Sidebar = ({ user, handleLogout }) => {
       show: isSupervisor,
       items: [
         { name: 'Reports', path: '/reports', icon: FileText },
-        { name: 'Email',   path: '/email',   icon: Mail },
-        ...(isAdmin ? [{ name: 'Users', path: '/users', icon: Users }] : [])
+        ...(isAdmin ? [
+          { name: 'Email',   path: '/email',   icon: Mail },
+          { name: 'Users', path: '/users', icon: Users }
+        ] : [])
       ]
     }
   ];

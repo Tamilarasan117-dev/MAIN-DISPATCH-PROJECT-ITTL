@@ -76,9 +76,8 @@ const WorkOrders = () => {
     mandatory_completion_date: '',
     job_serial_no: '',
     remarks: '',
-    dispatch_ref: '',
-    packing_ref: '',
-    loading_ref: '',
+    // Removed reference fields (dispatch_ref, packing_ref, loading_ref)
+    // No longer initializing these fields in formData
     export_domestic: 'Domestic',
     priority: 'Normal',
     delivery_deadline: ''
@@ -213,9 +212,6 @@ const WorkOrders = () => {
         customer_inspection:       wo.customer_inspection || 'Pending',
         mandatory_completion_date: wo.mandatory_completion_date || '',
         remarks:                   wo.remarks || '',
-        dispatch_ref:              wo.dispatch_ref || '',
-        packing_ref:               wo.packing_ref || '',
-        loading_ref:               wo.loading_ref || '',
         export_domestic:           wo.export_domestic || 'Domestic',
         priority:                  wo.priority || 'Normal',
         delivery_deadline:         wo.delivery_deadline || ''
@@ -228,9 +224,8 @@ const WorkOrders = () => {
         wo_num: `WO-${year}-${rand}`,
         customer: '', mva: '', voltage_range: '', job_serial_no: '', created_by: user?.user_metadata?.name || '',
         customer_inspection: 'Pending', mandatory_completion_date: '', remarks: '',
-        dispatch_ref: `DR-${year}-${rand}`,
-        packing_ref: `PL-${year}-${rand}`,
-        loading_ref: `LL-${year}-${rand}`,
+        // Removed reference field generation
+        // dispatch_ref, packing_ref, loading_ref are no longer generated
         export_domestic: 'Domestic',
         priority: 'Normal',
         delivery_deadline: ''
@@ -264,9 +259,8 @@ const WorkOrders = () => {
       customer_inspection:       formData.customer_inspection,
       mandatory_completion_date: formData.mandatory_completion_date,
       remarks:                   formData.remarks,
-      dispatch_ref:              formData.dispatch_ref,
-      packing_ref:               formData.packing_ref,
-      loading_ref:               formData.loading_ref,
+      // Removed reference fields from payload assignment
+      // dispatch_ref, packing_ref, loading_ref are omitted
       export_domestic:           formData.export_domestic,
       priority:                  formData.priority,
       delivery_deadline:         formData.delivery_deadline
@@ -490,26 +484,6 @@ const WorkOrders = () => {
                 <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Work Order Number</label>
                 <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
                   {viewingWO.wo_num}
-                </div>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dispatch Ref</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {viewingWO.dispatch_ref || '-'}
-                </div>
-              </div>
-            
-
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Packing Ref</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {viewingWO.packing_ref || '-'}
-                </div>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Loading Ref</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {viewingWO.loading_ref || '-'}
                 </div>
               </div>
               <div>

@@ -3,53 +3,15 @@ import re
 with open('src/pages/PackingList.jsx', 'r') as f:
     content = f.read()
 
-# 1. State changes
-content = re.sub(
-    r"const \[useCustomDesc, setUseCustomDesc\] = useState\(false\);\s*// Modal WO selection \(separate from page-level WO selector\)\s*const \[modalWOId, setModalWOId\] = useState\(''\);\s*const \[formData, setFormData\] = useState\(\{[\s\S]*?\}\);",
-    """// Modal WO selection (separate from page-level WO selector)
-  const [modalWOId, setModalWOId] = useState('');
+# Add state
+state_code = """
+  const [duplicateConflicts, setDuplicateConflicts] = useState(null);
+  const [loading, setLoading] = useState(true);
+"""
+content = content.replace("  const [loading, setLoading] = useState(true);", state_code)
 
-  const getEmptyItemRow = () => ({ box_num: '', item_num: '', description: '', qty: 1, uom: 'No.', pack_type: 'Open Type' });
-
-  const [formData, setFormData] = useState({
-    wo_num: '', customer: '', mva: '', rating: '', total_boxes: '',
-    items: [getEmptyItemRow()]
-  });""",
-    content
-)
-
-# 2. Open Modal
-content = re.sub(
-    r"const openModal = \(item = null\) => \{[\s\S]*?setIsModalOpen\(true\);\s*\};",
-    """const openModal = (item = null) => {
-    if (item) {
-      setEditingItem(item);
-      setModalWOId(item.wo_id?.toString() || selectedWOId);
-      setFormData({
-        wo_num: item.wo_num || '', customer: item.customer || '', mva: item.mva || '', rating: item.rating || '', total_boxes: item.total_boxes || '',
-        items: [{
-          box_num: item.box_num || '', item_num: item.item_num || '',
-          description: item.custom_desc || item.description || '',
-          qty: item.qty || 1, uom: item.uom || 'No.', pack_type: item.pack_type || 'Open Type'
-        }]
-      });
-    } else {
-      setEditingItem(null);
-      setModalWOId(selectedWOId);
-      setFormData({
-        wo_num: '', customer: '', mva: '', rating: '', total_boxes: '',
-        items: [getEmptyItemRow()]
-      });
-    }
-    setIsModalOpen(true);
-  };""",
-    content
-)
-
-# 3. Save Item
-content = re.sub(
-    r"const saveItem = async \(\) => \{[\s\S]*?toast\('Failed to save: ' \+ error\.message, 'error'\);\s*\}\s*\};",
-    """const saveItem = async () => {
+# Replace saveItem
+old_save_item = """  const saveItem = async () => {
     if (!modalWOId) { toast('Please select a Work Order', 'error'); return; }
 
     try {
@@ -58,17 +20,21 @@ content = re.sub(
         return {
           wo_id: modalWOId,
           wo_num: formData.wo_num,
-          customer: formData.customer,
-          mva: formData.mva,
-          rating: formData.rating,
-          total_boxes: formData.total_boxes,
           box_num: row.box_num,
           item_num: row.item_num,
           description: row.description,
           custom_desc: '', 
-          qty: parseInt(row.qty) || 1,
+          qty: row.qty,
           uom: row.uom,
           pack_type: row.pack_type,
+          weight: row.weight,
+          length: row.length,
+          width: row.width,
+          height: row.height,
+          production_sig: row.production_sig,
+          quality_sig: row.quality_sig,
+          packing_start_date: canEditDatesOnly() && row.packing_start_date !== undefined ? row.packing_start_date : null,
+          packing_end_date: canEditDatesOnly() && row.packing_end_date !== undefined ? row.packing_end_date : null,
           status: editingItem ? editingItem.status : 'Not Started'
         };
       });
@@ -81,12 +47,13 @@ content = re.sub(
         // AUTO-SYNC TO LOADING LIST (Update)
         await supabase.from('loading_items').update({
           wo_id: payload.wo_id, wo_num: payload.wo_num, item_num: payload.item_num,
-          description: payload.description, qty: payload.qty, uom: payload.uom
+          description: payload.description, qty: payload.qty, uom: payload.uom,
+          box_num: payload.box_num
         }).eq('packing_item_id', editingItem.id);
 
-        toast('Packing item updated & synced');
+        await logActivity(user?.id, 'Packing List', 'UPDATE', `Updated Packing Item ${payload.item_num || payload.description}`);
+        toast('Item updated successfully');
       } else {
-        // Bulk insert
         const { data: insertedItems, error } = await supabase.from('packing_items').insert(payloads).select();
         if (error) throw error;
 
@@ -101,7 +68,8 @@ content = re.sub(
           uom: item.uom,
           weight: 0,
           status: 'Reported',
-          notes: `Auto-synced from Packing (Box ${item.box_num || '-'})`
+          box_num: item.box_num,
+          notes: `Auto-synced from Packing`
         }));
         
         if (loadingPayloads.length > 0) {
@@ -109,115 +77,144 @@ content = re.sub(
           if (loadErr) throw loadErr;
         }
 
-        toast(`${insertedItems.length} item(s) added & synced`);
+        await logActivity(user?.id, 'Packing List', 'CREATE', `Added ${payloads.length} packing items to WO ${formData.wo_num}`);
+        toast('Items saved successfully');
       }
       closeModal();
       fetchPackingItems(selectedWOId);
     } catch (error) {
       toast('Failed to save: ' + error.message, 'error');
     }
-  };""",
-    content
-)
+  };"""
 
-# 4. syncToLoadingList (remove or neuter it)
-content = re.sub(
-    r"const syncToLoadingList = async \(item, newStatus\) => \{[\s\S]*?\}\s*\};",
-    """// Sync happens perfectly on create/update now.
-  const syncToLoadingList = async (item, newStatus) => {};""",
-    content
-)
+new_save_item = """
+  const executeInsert = async (itemsToInsert, itemsToUpdate) => {
+    try {
+      if (itemsToInsert.length > 0) {
+        const { data: insertedItems, error } = await supabase.from('packing_items').insert(itemsToInsert).select();
+        if (error) throw error;
+        const loadingPayloads = insertedItems.map(item => ({
+          packing_item_id: item.id, wo_id: item.wo_id, wo_num: item.wo_num, item_num: item.item_num,
+          description: item.description, qty: item.qty, uom: item.uom, weight: 0, status: 'Reported',
+          box_num: item.box_num, notes: `Auto-synced from Packing`
+        }));
+        if (loadingPayloads.length > 0) await supabase.from('loading_items').insert(loadingPayloads);
+        await logActivity(user?.id, 'Packing List', 'CREATE', `Added ${itemsToInsert.length} packing items to WO ${formData.wo_num}`);
+      }
 
-# 5. JSX changes for Modal
-jsx_start = content.find('{/* ── SECTION 2: Packing Details ── */}')
-jsx_end = content.find('<div className="modal-actions">', jsx_start)
+      for (const updatePayload of itemsToUpdate) {
+        const { error } = await supabase.from('packing_items').update(updatePayload).eq('id', updatePayload.id);
+        if (error) throw error;
+        await supabase.from('loading_items').update({
+          wo_id: updatePayload.wo_id, wo_num: updatePayload.wo_num, item_num: updatePayload.item_num,
+          description: updatePayload.description, qty: updatePayload.qty, uom: updatePayload.uom,
+          box_num: updatePayload.box_num
+        }).eq('packing_item_id', updatePayload.id);
+      }
 
-new_jsx = """{/* ── SECTION 2: Packing Items (Multi-Row Support) ── */}
-            <div style={{ marginTop: '20px', marginBottom: '10px', fontSize: '11px', fontWeight: '700', color: '#92400e', letterSpacing: '1px', textTransform: 'uppercase' }}>
-              📦 Packing Items
+      if (itemsToUpdate.length > 0) {
+         await logActivity(user?.id, 'Packing List', 'UPDATE', `Updated ${itemsToUpdate.length} packing items in WO ${formData.wo_num}`);
+      }
+
+      toast('Items saved successfully');
+      closeModal();
+      fetchPackingItems(selectedWOId);
+    } catch (error) {
+      toast('Failed to save: ' + error.message, 'error');
+    }
+  };
+
+  const resolveConflict = async (resolution) => {
+    const { newItems, updates, conflicts, currentIndex } = duplicateConflicts;
+    const currentConflict = conflicts[currentIndex];
+    
+    let nextNewItems = [...newItems];
+    let nextUpdates = [...updates];
+
+    if (resolution === 'replace') {
+      nextUpdates.push({ ...currentConflict.new, id: currentConflict.existing.id });
+    } else if (resolution === 'add') {
+      nextUpdates.push({ 
+        ...currentConflict.new, 
+        id: currentConflict.existing.id,
+        qty: (Number(currentConflict.existing.qty) || 0) + (Number(currentConflict.new.qty) || 0)
+      });
+    } // if 'skip', do nothing
+
+    if (currentIndex + 1 < conflicts.length) {
+      setDuplicateConflicts({ ...duplicateConflicts, newItems: nextNewItems, updates: nextUpdates, currentIndex: currentIndex + 1 });
+    } else {
+      setDuplicateConflicts(null);
+      await executeInsert(nextNewItems, nextUpdates);
+    }
+  };
+
+  const saveItem = async () => {
+    if (!modalWOId) { toast('Please select a Work Order', 'error'); return; }
+    try {
+      const payloads = formData.items.map(row => {
+        if (!row.description) throw new Error('Item description is required for all rows');
+        return {
+          wo_id: modalWOId, wo_num: formData.wo_num, box_num: row.box_num, item_num: row.item_num,
+          description: row.description, custom_desc: '', qty: row.qty, uom: row.uom, pack_type: row.pack_type,
+          weight: row.weight, length: row.length, width: row.width, height: row.height,
+          production_sig: row.production_sig, quality_sig: row.quality_sig,
+          packing_start_date: canEditDatesOnly() && row.packing_start_date !== undefined ? row.packing_start_date : null,
+          packing_end_date: canEditDatesOnly() && row.packing_end_date !== undefined ? row.packing_end_date : null,
+          status: editingItem ? editingItem.status : 'Not Started'
+        };
+      });
+
+      if (editingItem) {
+        await executeInsert([], [{ ...payloads[0], id: editingItem.id }]);
+      } else {
+        const { data: existingItems } = await supabase.from('packing_items').select('*').eq('wo_id', modalWOId);
+        const conflicts = [];
+        const newItems = [];
+        payloads.forEach(p => {
+          const match = existingItems?.find(e => e.item_num === p.item_num && e.box_num === p.box_num);
+          if (match) conflicts.push({ existing: match, new: p });
+          else newItems.push(p);
+        });
+
+        if (conflicts.length > 0) {
+          setDuplicateConflicts({ newItems, updates: [], conflicts, currentIndex: 0 });
+          return; // Wait for user resolution
+        }
+        await executeInsert(newItems, []);
+      }
+    } catch (error) {
+      toast('Failed to save: ' + error.message, 'error');
+    }
+  };
+"""
+content = content.replace(old_save_item, new_save_item)
+
+# Insert resolution UI into the modal
+modal_buttons_old = """          <div className="modal-actions" style={{ marginTop: '30px' }}>
+            <button className="btn" style={{ background: '#e2e8f0', color: '#4a5568' }} onClick={closeModal}>Cancel</button>
+            <button className="btn btn-red" onClick={saveItem}>Save Items</button>
+          </div>"""
+
+modal_buttons_new = """          {duplicateConflicts ? (
+            <div style={{ marginTop: '20px', padding: '15px', background: '#fffaf0', border: '1px solid #ed8936', borderRadius: '8px' }}>
+              <h4 style={{ margin: '0 0 10px 0', color: '#c05621' }}>⚠️ Duplicate Item Detected</h4>
+              <p style={{ fontSize: '13px', color: '#7b341e', marginBottom: '15px' }}>
+                Item {duplicateConflicts.conflicts[duplicateConflicts.currentIndex].new.item_num} (Box {duplicateConflicts.conflicts[duplicateConflicts.currentIndex].new.box_num}) already exists in this work order. What would you like to do?
+              </p>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button className="btn" style={{ background: '#ed8936' }} onClick={() => resolveConflict('replace')}>Replace Existing</button>
+                <button className="btn" style={{ background: '#ed8936' }} onClick={() => resolveConflict('add')}>Add to Existing Quantity</button>
+                <button className="btn" style={{ background: '#e2e8f0', color: '#4a5568' }} onClick={() => resolveConflict('skip')}>Skip</button>
+              </div>
             </div>
-            
-            <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', background: '#f7fafc' }}>
-              {formData.items.map((row, idx) => (
-                <div key={idx} style={{ position: 'relative', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '12px', marginBottom: '10px' }}>
-                  {!editingItem && formData.items.length > 1 && (
-                    <button onClick={() => {
-                      const newItems = [...formData.items];
-                      newItems.splice(idx, 1);
-                      setFormData({...formData, items: newItems});
-                    }} style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: 'none', color: '#e53e3e', cursor: 'pointer', fontWeight: 'bold' }}>✕ Remove</button>
-                  )}
-                  <div className="form-row">
-                    <div className="form-group" style={{ marginBottom: '10px' }}>
-                      <label>Box Number</label>
-                      <input value={row.box_num} onChange={e => {
-                        const newItems = [...formData.items]; newItems[idx].box_num = e.target.value; setFormData({...formData, items: newItems});
-                      }} placeholder="e.g. BOX-001" />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: '10px' }}>
-                      <label>Item Number</label>
-                      <input value={row.item_num} onChange={e => {
-                        const newItems = [...formData.items]; newItems[idx].item_num = e.target.value; setFormData({...formData, items: newItems});
-                      }} placeholder="e.g. 1" />
-                    </div>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: '10px' }}>
-                    <label>Item Description *</label>
-                    <input
-                      list="packingItemsList"
-                      value={row.description}
-                      onChange={e => {
-                        const newItems = [...formData.items]; newItems[idx].description = e.target.value; setFormData({...formData, items: newItems});
-                      }}
-                      placeholder="Search from list or type manually..."
-                      style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', backgroundColor: '#fff' }}
-                      autoComplete="off"
-                    />
-                    <datalist id="packingItemsList">
-                      {masterItems.map((mItem, i) => (
-                        <option key={i} value={mItem} />
-                      ))}
-                    </datalist>
-                  </div>
-
-                  <div className="form-row-3" style={{ marginBottom: 0 }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>Quantity</label>
-                      <input type="number" value={row.qty} onChange={e => {
-                        const newItems = [...formData.items]; newItems[idx].qty = e.target.value; setFormData({...formData, items: newItems});
-                      }} min="1" />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>UOM</label>
-                      <select value={row.uom} onChange={e => {
-                        const newItems = [...formData.items]; newItems[idx].uom = e.target.value; setFormData({...formData, items: newItems});
-                      }}>
-                        {['No.', 'Set', 'Nos'].map(u => <option key={u} value={u}>{u}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>Packing Type</label>
-                      <select value={row.pack_type} onChange={e => {
-                        const newItems = [...formData.items]; newItems[idx].pack_type = e.target.value; setFormData({...formData, items: newItems});
-                      }}>
-                        {['Open Type', 'Wooden Box', 'Steel Box', 'Loose Packing'].map(p => <option key={p} value={p}>{p}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {!editingItem && (
-                <button className="btn btn-outline" style={{ width: '100%', marginTop: '4px' }} onClick={() => {
-                  setFormData({...formData, items: [...formData.items, getEmptyItemRow()]});
-                }}>+ Add Another Row</button>
-              )}
+          ) : (
+            <div className="modal-actions" style={{ marginTop: '30px' }}>
+              <button className="btn" style={{ background: '#e2e8f0', color: '#4a5568' }} onClick={() => { closeModal(); setDuplicateConflicts(null); }}>Cancel</button>
+              <button className="btn btn-red" onClick={saveItem}>Save Items</button>
             </div>
-
-            """
-
-content = content[:jsx_start] + new_jsx + content[jsx_end:]
+          )}"""
+content = content.replace(modal_buttons_old, modal_buttons_new)
 
 with open('src/pages/PackingList.jsx', 'w') as f:
     f.write(content)

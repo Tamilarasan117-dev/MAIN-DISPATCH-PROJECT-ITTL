@@ -79,7 +79,7 @@ const LoadingList = () => {
       return;
     }
     try {
-      const { data, error } = await supabase.from('packing_items').select('*').in('wo_id', woIds);
+      const { data, error } = await supabase.from('packing_items').select('*').in('wo_id', woIds).eq('status', 'Packed');
       if (error) throw error;
       setPackingItems(data || []);
     } catch (error) {
@@ -434,7 +434,9 @@ const LoadingList = () => {
                     <td>{ll.date_of_loading}</td>
                     <td><span style={{ ...statusBadgeStyle(ll.status), padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>{ll.status}</span></td>
                     <td style={{ display: 'flex', gap: '4px' }}>
-                      <button className="icon-btn" title="View" onClick={() => setViewingLL(ll)}>👁️</button>
+                      {user?.role !== 'Security' && (
+                        <button className="icon-btn" title="View" onClick={() => setViewingLL(ll)}>👁️</button>
+                      )}
                       <button className="icon-btn" title="Edit" onClick={() => openEditLoading(ll)}>✏️</button>
                       <button className="icon-btn danger" title="Delete" onClick={() => deleteLoadingList(ll.id)}>🗑️</button>
                     </td>
@@ -538,7 +540,7 @@ const LoadingList = () => {
                                 </div>
                               );
                             })
-                          ) : <div style={{ fontSize: '11px', color: '#718096', textAlign: 'center', padding: '20px 0' }}>No items found.</div>
+                          ) : <div style={{ fontSize: '11px', color: '#718096', textAlign: 'center', padding: '20px 0' }}>No packed items available.</div>
                           : <div style={{ fontSize: '11px', color: '#718096', textAlign: 'center', padding: '20px 0' }}>Select Work Order.</div>}
                         </div>
                       </div>
@@ -693,63 +695,130 @@ const LoadingList = () => {
               <button className="modal-close" onClick={() => setViewingLL(null)}>×</button>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '10px' }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Date of Loading</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {viewingLL.date_of_loading || '—'}
-                </div>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {viewingLL.status || 'Pending'}
-                </div>
-              </div>
+            <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
               
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Work Orders</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {viewingLL.wos_data && viewingLL.wos_data.length > 0 ? (
-                     viewingLL.wos_data.map(w => w.wo_num).join(', ')
-                  ) : (
-                     viewingLL.wo_num || '—'
-                  )}
+              {/* Top Information Section */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Loading List Number</div>
+                  <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
+                    {viewingLL.ll_num || '—'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status</div>
+                  <div style={{ marginTop: '12px' }}>
+                    <span style={{ ...statusBadgeStyle(viewingLL.status), padding: '6px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' }}>
+                      {viewingLL.status || 'Pending'}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Date</div>
+                  <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
+                    {viewingLL.date_of_loading || '—'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Items</div>
+                  <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
+                    {viewingLL.loading_list_items?.length || 0}
+                  </div>
                 </div>
               </div>
 
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Customers</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {viewingLL.wos_data && viewingLL.wos_data.length > 0 ? (
-                     [...new Set(viewingLL.wos_data.map(w => w.customer_name))].join(', ')
-                  ) : (
-                     viewingLL.customer_name || '—'
-                  )}
+              {/* Vehicle & Order Section */}
+              {viewingLL.wos_data && viewingLL.wos_data.length > 0 ? (
+                viewingLL.wos_data.map((woBlock, idx) => (
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Work Order Number</div>
+                      <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
+                        {woBlock.wo_num || '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Customer Name</div>
+                      <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {woBlock.customer_name || '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vehicle Number</div>
+                      <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
+                        {woBlock.vehicle_num || '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vehicle Type</div>
+                      <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
+                        {woBlock.vehicle_type || '—'}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Work Order Number</div>
+                    <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
+                      {viewingLL.wo_num || '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Customer Name</div>
+                    <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {viewingLL.customer_name || '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vehicle Number</div>
+                    <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
+                      {viewingLL.vehicle_num || '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vehicle Type</div>
+                    <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
+                      {viewingLL.vehicle_type || '—'}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vehicle Number</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {viewingLL.vehicle_num || '—'}
-                </div>
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Driver Name</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {viewingLL.wos_data && viewingLL.wos_data.length > 0 ? (
-                     [...new Set(viewingLL.wos_data.map(w => w.driver_name).filter(Boolean))].join(', ') || '—'
-                  ) : '—'}
+              )}
+
+              {/* Items List Table */}
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#2d3748', marginBottom: '12px' }}>Loaded Items</div>
+                <div className="table-wrap" style={{ maxHeight: '250px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                  <table style={{ margin: 0, width: '100%', borderCollapse: 'collapse' }}>
+                    <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f7fafc' }}>
+                      <tr>
+                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1.5px solid #e2e8f0', color: '#4a5568', fontSize: '11px', textTransform: 'uppercase' }}>BOX / ITEM</th>
+                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1.5px solid #e2e8f0', color: '#4a5568', fontSize: '11px', textTransform: 'uppercase' }}>DESCRIPTION</th>
+                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1.5px solid #e2e8f0', color: '#4a5568', fontSize: '11px', textTransform: 'uppercase' }}>QTY</th>
+                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1.5px solid #e2e8f0', color: '#4a5568', fontSize: '11px', textTransform: 'uppercase' }}>WEIGHT</th>
+                        <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1.5px solid #e2e8f0', color: '#4a5568', fontSize: '11px', textTransform: 'uppercase' }}>REMARKS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(!viewingLL.loading_list_items || viewingLL.loading_list_items.length === 0) ? (
+                        <tr><td colSpan="5" style={{ textAlign: 'center', color: '#718096', padding: '20px' }}>No items loaded.</td></tr>
+                      ) : (
+                        viewingLL.loading_list_items.map((item, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #edf2f7' }}>
+                            <td style={{ padding: '10px', fontSize: '13px' }}><strong>{item.box_num || '-'}</strong> / {item.item_num || '-'}</td>
+                            <td style={{ padding: '10px', fontSize: '13px' }}>{item.description}</td>
+                            <td style={{ padding: '10px', fontSize: '13px' }}>{item.qty}</td>
+                            <td style={{ padding: '10px', fontSize: '13px' }}>{item.weight || '-'}</td>
+                            <td style={{ padding: '10px', fontSize: '13px', color: '#718096' }}>{item.remarks || '-'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ fontSize: '11px', fontWeight: '700', color: '#718096', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Items Loaded</label>
-                <div style={{ background: '#f7fafc', padding: '10px 14px', borderRadius: '8px', marginTop: '6px', border: '1.5px solid #e2e8f0', color: '#2d3748', fontWeight: '600', fontSize: '14px' }}>
-                  {(viewingLL.loading_list_items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0)} items
-                </div>
-              </div>
             </div>
 
             <div className="modal-footer" style={{ marginTop: '24px' }}>

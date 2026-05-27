@@ -16,6 +16,12 @@ import Reports from './pages/Reports';
 import DispatchSlip from './pages/DispatchSlip';
 import Email from './pages/Email';
 import Users from './pages/Users';
+
+import ManagerDashboard from './pages/manager/ManagerDashboard';
+import ManagerWorkOrders from './pages/manager/ManagerWorkOrders';
+import ManagerPackingList from './pages/manager/ManagerPackingList';
+import ManagerLoadingList from './pages/manager/ManagerLoadingList';
+
 function App() {
   const [session, setSession] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -135,6 +141,14 @@ function App() {
               <Route element={<Layout user={userProfile} handleLogout={handleLogout} />}>
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="*" element={<Navigate to="/vehicles" />} />
+              </Route>
+            ) : userProfile.role === 'Dashboard User' ? (
+              <Route element={<Layout user={userProfile} handleLogout={handleLogout} />}>
+                <Route path="/" element={<ManagerDashboard />} />
+                <Route path="/work-orders" element={<ManagerWorkOrders />} />
+                <Route path="/packing-list" element={<ManagerPackingList />} />
+                <Route path="/loading-list" element={<ManagerLoadingList />} />
+                <Route path="*" element={<Navigate to="/" />} />
               </Route>
             ) : (
               <Route element={<Layout user={userProfile} handleLogout={handleLogout} />}>
